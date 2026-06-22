@@ -123,7 +123,10 @@ def sample_log(data_dir: Path) -> Path:
 
 # =====================================================================
 # 7) Hook：往 pytest-html 报告里加一列"环境信息"
-#    （没装 pytest-html 时这个 hook 不会被调用，不影响普通运行）
+#    optionalhook=True 是关键：这个 hook 由 pytest-html 插件定义，
+#    没装该插件时 pytest 不认识这个名字。加了 optionalhook 标记，
+#    pytest 就会"没装就忽略"，而不是抛 unknown hook 的校验错误。
 # =====================================================================
+@pytest.hookimpl(optionalhook=True)
 def pytest_html_report_title(report) -> None:    # noqa: ANN001 (pytest-html 提供)
     report.title = "APB pyverif 测试报告"

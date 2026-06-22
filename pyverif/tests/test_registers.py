@@ -43,11 +43,9 @@ def test_write_then_read_each_reg(model: ApbSlaveModel, addr):
 
 
 # --- 2) 对数据 pattern 参数化（用 ids 让报告更易读）-------------------
+# 遍历字典 PATTERNS 中的每一项，把字典的值（values()）作为测试数据传给参数 value，
+# 同时把字典的键（keys()）作为这个测试用例的显示名称（ID ）。
 @pytest.mark.reg
-'''
-遍历字典 PATTERNS 中的每一项，把字典的值（values()）作为测试数据传给参数 value，
-同时把字典的键（keys()）作为这个测试用例的显示名称（ID）。
-'''
 @pytest.mark.parametrize("value", PATTERNS.values(), ids=PATTERNS.keys())
 def test_data_patterns(model: ApbSlaveModel, value):
     """固定地址，写入各种典型数据再读回。"""
