@@ -1,0 +1,80 @@
+# =====================================================================
+# GitHub Actions —— 提交触发的回归流水线 (CI)
+# ---------------------------------------------------------------------
+# 这是最容易上手的 CI：把这个文件放到仓库的 .github/workflows/ 下，
+# 推代码到 GitHub 后，每次 push / Pull Request 都会自动跑一遍 pytest。
+#
+# 它跑的是 pyverif 的"离线模式"（纯 Python 黄金模型，不需要 VCS），
+# 因为 GitHub 的云端机器上没有 EDA 仿真器和 license。
+# 真正驱动 VCS 的 CI 见 ci/Jenkinsfile（企业内网自建机）。
+#
+# 流水线阶段对应学习思路：代码提交 -> 编译(装依赖) -> 仿真(跑pytest)
+#                          -> 覆盖率收集 -> 报告生成(上传 artifact)
+# =====================================================================
+
+name: APB 回归 (push/PR)
+
+# --- 触发条件 (什么时候跑) -------------------------------------------
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:            # 给 PR 跑，合并前就能看到红/绿
+  workflow_dispatch:       # 允许在 GitHub 网页上手动点按钮触发
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest        # GitHub 免费提供的 Linux 云主机
+
+    steps:
+      # 第 1 步：把仓库代码拉到这台云主机上
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      # 第 2 步：装 Python（相当于"准备编译环境"）
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip               # 缓存依赖，后续跑得更快
+
+      # 第 3 步：装依赖（pytest / pandas / matplotlib ...）
+      - name: 安装依赖
+        working-directory: pyverif
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 第 4 步：跑 pytest（= "仿真/测试"阶段）
+      #   --junitxml : 产出机器可读的结果，供 GitHub 展示
+      #   --html     : 产出人看的报告
+      #   -m "not sim": 跳过需要真实仿真器的用例
+      - name: 运行回归测试
+        working-directory: pyverif
+        run: |
+          pytest -m "not sim" \
+            --junitxml=reports/junit.xml \
+            --html=reports/pytest_report.html --self-contained-html
+
+      # 第 5 步：跑一键回归脚本，产出 HTML/CSV 汇总（= "报告生成"）
+      - name: 生成回归汇总报告
+        working-directory: pyverif
+        run: python scripts/run_regression.py
+
+      # 第 6 步：把报告作为"构建产物(artifact)"上传，
+      #          跑完后能在 Actions 页面下载查看。
+      #   if: always() —— 即使测试失败也要传报告（失败时报告更重要！）
+      - name: 上传报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apb-regression-reports
+          path: pyverif/reports/
+
+      # 第 7 步：把测试结果以"勾/叉"形式展示在 PR 页面（可选美化）
+      - name: 发布测试结果摘要
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: pytest 结果
+          path: pyverif/reports/junit.xml
+          reporter: java-junit

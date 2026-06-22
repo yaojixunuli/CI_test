@@ -1,0 +1,73 @@
+// =====================================================================
+// Jenkinsfile.local —— 本地学习版（Windows + 无 VCS）
+// ---------------------------------------------------------------------
+// 用途：在自己电脑上跑通 Jenkins，不需要内网服务器、不需要 VCS。
+// 它跑 pyverif 的"离线模式"（纯 Python 黄金模型），让你先把
+// Jenkins 的"建任务 -> 构建 -> 看 stage -> 归档报告"流程学会。
+//
+// 与企业版 ci/Jenkinsfile 的区别（也是你需要理解的"环境差异"）：
+//   agent { label 'verif-server' }  ->  agent any   （用本机这台）
+//   sh 'make ...'                   ->  bat 'pytest'（Windows 用 bat，且不调 VCS）
+//
+// 前置：本机要装好 Java(给 Jenkins) + Python(给 pytest)。
+//
+// 用法：Jenkins 新建 Pipeline 任务 -> Pipeline script from SCM ->
+//       Script Path 填 ci/Jenkinsfile.local
+// =====================================================================
+
+pipeline {
+    agent any                    // 用 Jenkins 所在的本机执行，不挑机器
+
+    options {
+        timestamps()
+        timeout(time: 20, unit: 'MINUTES')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm     // 从配置的 git 仓库拉代码
+            }
+        }
+
+        stage('Setup') {
+            steps {
+                // Windows 用 bat（批处理）。如果你用 Linux/Mac 的 Jenkins，把 bat 换成 sh。
+                dir('pyverif') {
+                    bat 'python -m pip install --upgrade pip'
+                    bat 'pip install -r requirements.txt'
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                dir('pyverif') {
+                    // -m "not sim"：跳过需要真实仿真器的用例
+                    bat 'pytest -m "not sim" --junitxml=reports/junit.xml --html=reports/pytest_report.html --self-contained-html'
+                }
+            }
+        }
+
+        stage('Report') {
+            steps {
+                dir('pyverif') {
+                    // run_regression.py 返回非 0 时本 stage 失败 -> 整条流水线标红（门禁）
+                    bat 'python scripts/run_regression.py'
+                    bat 'python scripts/analyze_trend.py'
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // 把 junit 结果喂给 Jenkins，构建页会出"测试趋势"图
+            junit allowEmptyResults: true, testResults: 'pyverif/reports/junit.xml'
+            // 归档报告，构建页可下载
+            archiveArtifacts artifacts: 'pyverif/reports/**', allowEmptyArchive: true
+        }
+        success { echo '✅ 全部通过' }
+        failure { echo '❌ 有用例失败，去 Console Output / 报告里看' }
+    }
+}

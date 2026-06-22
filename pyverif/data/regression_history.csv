@@ -1,0 +1,11 @@
+date,case,coverage,compare_pass,compare_fail,passed
+2026-06-01,case0,50.00,16,0,True
+2026-06-01,case1,50.00,14,0,True
+2026-06-05,case0,62.50,16,0,True
+2026-06-05,case1,68.75,14,2,False
+2026-06-10,case0,68.75,16,0,True
+2026-06-10,case1,81.25,16,0,True
+2026-06-15,case0,68.75,16,0,True
+2026-06-15,case1,93.75,16,0,True
+2026-06-18,case0,68.75,16,0,True
+2026-06-18,case1,100.00,16,0,True

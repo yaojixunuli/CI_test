@@ -1,0 +1,96 @@
+# =====================================================================
+# GitLab CI —— 流水线配置
+# ---------------------------------------------------------------------
+# 很多公司内网用 GitLab（自建），它的 CI 配置就是仓库根目录这个
+# .gitlab-ci.yml。概念和 GitHub Actions 类似，但术语不同：
+#
+#   GitHub Actions     GitLab CI
+#   -----------        ---------
+#   workflow           pipeline（流水线）
+#   job                job
+#   step               script（一条条命令）
+#   runner(云)         runner（常是公司自建机，可装 VCS！）
+#
+# 本文件演示学习思路里的完整流水线：
+#   编译(装依赖) -> 仿真(pytest) -> 覆盖率 -> 报告 -> nightly
+# =====================================================================
+
+# stages 定义流水线的"阶段"，按顺序执行；同一 stage 内的 job 可并行。
+stages:
+  - build
+  - test
+  - report
+
+# 所有 job 共用的默认设置
+default:
+  image: python:3.11          # 用官方 Python 镜像作为运行环境
+  before_script:              # 每个 job 跑正式命令前都先执行（= 准备环境）
+    - cd pyverif
+    - pip install -r requirements.txt
+
+# 用变量集中管理路径，便于维护
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
+
+# 缓存依赖，加速后续流水线
+cache:
+  paths:
+    - .pip-cache/
+
+# --- 阶段 1：build（这里主要是验证依赖能装上）-----------------------
+build:deps:
+  stage: build
+  script:
+    - python -c "import pytest, pandas, matplotlib; print('依赖 OK')"
+
+# --- 阶段 2：test（跑 pytest）---------------------------------------
+test:pytest:
+  stage: test
+  script:
+    - pytest -m "not sim"
+        --junitxml=reports/junit.xml
+        --html=reports/pytest_report.html --self-contained-html
+  # artifacts：把产物保留下来，GitLab 会自动解析 junit 并展示通过/失败
+  artifacts:
+    when: always              # 失败也要保留报告
+    paths:
+      - pyverif/reports/
+    reports:
+      junit: pyverif/reports/junit.xml
+
+# --- 阶段 2 并行：覆盖率（Python 代码覆盖率，演示用）----------------
+test:coverage:
+  stage: test
+  script:
+    - pip install pytest-cov
+    - pytest -m "not sim" --cov=apb --cov-report=term --cov-report=xml:reports/coverage.xml
+  # GitLab 能从输出里抓覆盖率百分比，显示在 MR 上
+  coverage: '/TOTAL.*\s(\d+%)$/'
+  artifacts:
+    paths:
+      - pyverif/reports/coverage.xml
+
+# --- 阶段 3：report（生成回归汇总 + 趋势图）-------------------------
+report:summary:
+  stage: report
+  script:
+    - python scripts/run_regression.py
+    - python scripts/analyze_trend.py
+  artifacts:
+    paths:
+      - pyverif/reports/
+
+# --- Nightly：定时全量回归 ------------------------------------------
+# 在 GitLab 里，定时是通过 "CI/CD -> Schedules" 页面配置触发时间，
+# 然后用 $CI_PIPELINE_SOURCE == "schedule" 判断"这次是不是定时触发"。
+nightly:full:
+  stage: test
+  script:
+    - pytest --junitxml=reports/junit-nightly.xml   # 跑全部（含 perf 压力）
+  rules:
+    # 只有"定时触发"时才跑这个 job，平时 push 不跑
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+  artifacts:
+    when: always
+    paths:
+      - pyverif/reports/

@@ -1,0 +1,123 @@
+// =====================================================================
+// Jenkinsfile —— 企业级 CI 流水线（驱动真实 VCS 仿真）
+// ---------------------------------------------------------------------
+// 为什么单独给 Jenkins：在 IC/数字验证行业，Jenkins 是事实标准。
+// 原因是 EDA 仿真器(VCS/Verdi)和 license 都在公司内网的服务器上，
+// 必须用"自建 runner(agent)"才能跑，而 GitHub/GitLab 的云端机跑不了。
+//
+// 这个 Pipeline 完整对应学习思路的流水线设计：
+//   代码提交(checkout) -> 编译(make com) -> 仿真(make case0/case1)
+//   -> 覆盖率收集(make cov) -> 报告生成(归档+发布) -> 邮件通知
+//
+// 它用的是 Jenkins "声明式流水线(Declarative Pipeline)"语法。
+// =====================================================================
+
+pipeline {
+    // agent：在哪台机器上跑。'verif-server' 是给装了 VCS 的内网机打的标签。
+    // 学习/没有内网机时可改成 agent any。
+    agent { label 'verif-server' }
+
+    // --- 定时触发：nightly regression -------------------------------
+    triggers {
+        // cron 语法：分 时 日 月 周。'H 2 * * *' = 每天凌晨 2 点左右。
+        // 用 H(hash) 而不是 0，让 Jenkins 把多个任务的触发时间打散，避免同一秒挤爆。
+        cron('H 2 * * *')
+    }
+
+    // --- 环境变量：把工具路径/license 集中配置 ----------------------
+    environment {
+        // 真实项目里 license 服务器地址这样设（示例）：
+        // LM_LICENSE_FILE = '5280@license-server'
+        SIM_DIR = 'sim'
+    }
+
+    options {
+        timestamps()                         // 每行日志加时间戳
+        timeout(time: 2, unit: 'HOURS')      // 整条流水线超时保护
+        buildDiscarder(logRotator(numToKeepStr: '30'))  // 只保留最近 30 次构建
+    }
+
+    stages {
+        // ---- 阶段 1：检出代码 --------------------------------------
+        stage('Checkout') {
+            steps {
+                checkout scm                 // 拉取本仓库当前分支
+            }
+        }
+
+        // ---- 阶段 2：编译 (elaborate) ------------------------------
+        stage('Compile') {
+            steps {
+                dir("${SIM_DIR}") {
+                    sh 'make com'            // 调 makefile 的编译目标，生成 simv
+                }
+            }
+        }
+
+        // ---- 阶段 3：仿真（多 case 并行）---------------------------
+        // parallel：case0 和 case1 同时跑，缩短回归总时长（多配置并行）。
+        stage('Simulate') {
+            parallel {
+                stage('case0') {
+                    steps { dir("${SIM_DIR}") { sh 'make case0' } }
+                }
+                stage('case1') {
+                    steps { dir("${SIM_DIR}") { sh 'make case1' } }
+                }
+            }
+        }
+
+        // ---- 阶段 4：覆盖率收集（合并 + 出 HTML 报告）-------------
+        stage('Coverage') {
+            steps {
+                dir("${SIM_DIR}") {
+                    sh 'make cov'            // urg 合并 cov.vdb，生成 urgReport/
+                }
+            }
+        }
+
+        // ---- 阶段 5：Python 层解析 + 汇总报告 ----------------------
+        // 用我们写的 pyverif 脚本解析仿真日志、判定通过、出 HTML/CSV。
+        stage('Report') {
+            steps {
+                dir('pyverif') {
+                    sh 'pip install -r requirements.txt'
+                    // run_regression.py 返回非 0 退出码时，这个 stage 会失败，
+                    // 从而让整条流水线标红 —— 这就是"门禁(gate)"。
+                    sh 'python scripts/run_regression.py --run-sim'
+                    sh 'python scripts/analyze_trend.py'
+                }
+            }
+        }
+    }
+
+    // --- post：流水线结束后无论成败都要做的事 ----------------------
+    post {
+        always {
+            // 归档报告，构建页面上可直接下载/查看
+            archiveArtifacts artifacts: 'pyverif/reports/**, sim/urgReport/**',
+                             allowEmptyArchive: true
+            // 把 HTML 报告嵌进 Jenkins 页面（需装 HTML Publisher 插件）
+            publishHTML(target: [
+                reportDir: 'pyverif/reports',
+                reportFiles: 'regression.html',
+                reportName: 'APB 回归报告',
+                keepAll: true, alwaysLinkToLastBuild: true, allowMissing: true
+            ])
+        }
+        failure {
+            // 只在失败时发邮件（结果邮件通知）
+            emailext(
+                subject: "[APB CI] 构建失败 #${env.BUILD_NUMBER}",
+                body: """回归失败，请查看：${env.BUILD_URL}
+
+分支: ${env.GIT_BRANCH}
+提交: ${env.GIT_COMMIT}""",
+                to: 'verif-team@example.com'
+            )
+        }
+        success {
+            echo '回归全部通过 ✅'
+        }
+    }
+}

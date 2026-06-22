@@ -1,0 +1,16 @@
+# =====================================================================
+# pyverif 框架依赖
+# ---------------------------------------------------------------------
+# 安装方法（建议在虚拟环境中执行）：
+#     python -m venv .venv
+#     .venv\Scripts\activate      (Windows)
+#     source .venv/bin/activate   (Linux/Mac)
+#     pip install -r requirements.txt
+# =====================================================================
+
+pytest>=7.0            # 测试框架核心：fixture / 参数化 / 断言
+pytest-html>=3.2       # 生成自包含的 HTML 测试报告
+pytest-cov>=4.0        # 统计 Python 代码覆盖率（注意：不是芯片功能覆盖率）
+pandas>=1.5            # 日志/覆盖率数据的结构化处理与统计
+matplotlib>=3.6        # 趋势图、分布图等可视化
+tabulate>=0.9          # pandas.DataFrame 转 Markdown 表格（报告用，可选）

@@ -1,0 +1,32 @@
+UVM_INFO @ 0: reporter [RNTST] Running test apb_test_case0...
+UVM_INFO @ 0: reporter [UVM/RELNOTES] UVM-1.2 (build ...)
+UVM_INFO apb_env.sv(20) @ 0: uvm_test_top.env [apb_env] build_phase done
+UVM_INFO apb_driver.sv(23) @ 25: uvm_test_top.env.master_agent.drv [apb_driver] reset released, start driving
+UVM_INFO apb_scoreboard.sv(44) @ 75: uvm_test_top.env.scoreboard [apb_scoreboard] Compare SUCCESSFULLY addr=0x0 write=1 data=0x0
+UVM_INFO apb_scoreboard.sv(44) @ 115: uvm_test_top.env.scoreboard [apb_scoreboard] Compare SUCCESSFULLY addr=0x0 write=0 data=0x0
+UVM_INFO apb_scoreboard.sv(44) @ 155: uvm_test_top.env.scoreboard [apb_scoreboard] Compare SUCCESSFULLY addr=0x4 write=1 data=0xdead0001
+UVM_INFO apb_scoreboard.sv(44) @ 195: uvm_test_top.env.scoreboard [apb_scoreboard] Compare SUCCESSFULLY addr=0x4 write=0 data=0xdead0001
+UVM_INFO apb_scoreboard.sv(44) @ 235: uvm_test_top.env.scoreboard [apb_scoreboard] Compare SUCCESSFULLY addr=0x8 write=1 data=0xdead0002
+UVM_INFO apb_scoreboard.sv(44) @ 275: uvm_test_top.env.scoreboard [apb_scoreboard] Compare SUCCESSFULLY addr=0x8 write=0 data=0xdead0002
+UVM_INFO apb_scoreboard.sv(44) @ 315: uvm_test_top.env.scoreboard [apb_scoreboard] Compare SUCCESSFULLY addr=0xc write=1 data=0xdead0003
+UVM_INFO apb_scoreboard.sv(44) @ 355: uvm_test_top.env.scoreboard [apb_scoreboard] Compare SUCCESSFULLY addr=0xc write=0 data=0xdead0003
+UVM_INFO apb_scoreboard.sv(44) @ 395: uvm_test_top.env.scoreboard [apb_scoreboard] Compare SUCCESSFULLY addr=0x10 write=1 data=0xdead0004
+UVM_INFO apb_scoreboard.sv(44) @ 435: uvm_test_top.env.scoreboard [apb_scoreboard] Compare SUCCESSFULLY addr=0x10 write=0 data=0xdead0004
+UVM_INFO apb_scoreboard.sv(44) @ 475: uvm_test_top.env.scoreboard [apb_scoreboard] Compare SUCCESSFULLY addr=0x14 write=1 data=0xdead0005
+UVM_INFO apb_scoreboard.sv(44) @ 515: uvm_test_top.env.scoreboard [apb_scoreboard] Compare SUCCESSFULLY addr=0x14 write=0 data=0xdead0005
+UVM_INFO apb_scoreboard.sv(44) @ 555: uvm_test_top.env.scoreboard [apb_scoreboard] Compare SUCCESSFULLY addr=0x18 write=1 data=0xdead0006
+UVM_INFO apb_scoreboard.sv(44) @ 595: uvm_test_top.env.scoreboard [apb_scoreboard] Compare SUCCESSFULLY addr=0x18 write=0 data=0xdead0006
+UVM_INFO apb_scoreboard.sv(44) @ 635: uvm_test_top.env.scoreboard [apb_scoreboard] Compare SUCCESSFULLY addr=0x1c write=1 data=0xdead0007
+UVM_INFO apb_scoreboard.sv(44) @ 675: uvm_test_top.env.scoreboard [apb_scoreboard] Compare SUCCESSFULLY addr=0x1c write=0 data=0xdead0007
+UVM_WARNING apb_monitor.sv(38) @ 680: uvm_test_top.env.slave_agent.mon [apb_monitor] sampled transfer near reset boundary (informational)
+UVM_INFO apb_coverage.sv(50) @ 700: uvm_test_top.env.coverage [apb_coverage] Functional coverage = 68.75%
+UVM_INFO apb_base_test.sv(28) @ 700: uvm_test_top [apb_base_test] report_phase summary
+TEST CASE PASSED
+UVM_INFO /tool/uvm/base/uvm_report_server.svh(...) @ 700: reporter [UVM/REPORT/SERVER]
+--- UVM Report Summary ---
+** Report counts by severity
+UVM_INFO :   21
+UVM_WARNING :    1
+UVM_ERROR :    0
+UVM_FATAL :    0
+$finish at simulation time   700

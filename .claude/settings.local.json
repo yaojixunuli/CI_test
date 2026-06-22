@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd \"c:/Users/91411/Desktop/入职前培训/UVM/apb_test\" 2>/dev/null && pwd && echo \"---FOUND---\" || echo \"NOT FOUND on c:\"; ls -la /Users/j9p7cc 2>/dev/null | head -20)",
+      "Read(//Users/**)",
+      "Bash(find . -type f -not -path '*/\\\\.*')",
+      "Bash(pip --version)",
+      "Bash(python -m pytest --version)"
+    ]
+  }
+}

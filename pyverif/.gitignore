@@ -1,0 +1,14 @@
+# Python 运行产物
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# 本框架生成的报告（保留目录，忽略内容）
+reports/*
+!reports/.gitkeep
+
+# 仿真器临时日志
+*.pylog
