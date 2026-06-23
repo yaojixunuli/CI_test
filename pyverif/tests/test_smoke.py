@@ -38,7 +38,9 @@ def test_model_reset_value():
 def test_single_write_read(model: ApbSlaveModel):
     """最基本的一写一读。"""
     model.write(0x04, 0xDEAD_BEEF)
-    assert model.read(0x04) == 0xDEAD_BEEF
+    # assert model.read(0x04) == 0xDEAD_BEEF
+    # 失败测试
+    assert model.read(0x04) == 0xDEAD_BEED
 
 
 # --- 验证数据按 32 位回绕（硬件位宽行为）-------------------------------
