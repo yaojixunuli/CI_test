@@ -38,9 +38,7 @@ def test_model_reset_value():
 def test_single_write_read(model: ApbSlaveModel):
     """最基本的一写一读。"""
     model.write(0x04, 0xDEAD_BEEF)
-    # assert model.read(0x04) == 0xDEAD_BEEF
-    # 失败测试
-    assert model.read(0x04) == 0xDEAD_BEED
+    assert model.read(0x04) == 0xDEAD_BEEF
 
 
 # --- 验证数据按 32 位回绕（硬件位宽行为）-------------------------------
@@ -80,3 +78,53 @@ def test_direction_enum():
     rd = ApbTransaction(write=False, addr=0)
     assert wr.direction is Direction.WRITE
     assert rd.direction is Direction.READ
+
+
+# =====================================================================
+# G：跳过 / 预期失败 练习区
+#   跑 `pytest tests/test_smoke.py -v -rsxX` 可看到 skipped / xfail 明细：
+#       -rs : 列出 skipped 的原因
+#       -rx : 列出 xfailed 的原因
+#       -rX : 列出 xpassed（预期失败却通过了）的用例
+# =====================================================================
+import sys
+
+
+# G-1：无条件跳过。报告显示 SKIPPED，永远不执行函数体。
+@pytest.mark.smoke
+@pytest.mark.skip(reason="演示用：该功能尚未实现，先跳过")
+def test_skip_demo():
+    assert False        # 不会被执行，所以不会失败
+
+
+# G-2：条件跳过。条件为真才跳；这里在 Windows 上跳过。
+@pytest.mark.smoke
+@pytest.mark.skipif(sys.platform == "win32", reason="演示用：仅在非 Windows 运行")
+def test_skipif_demo():
+    assert True
+
+
+# G-3：运行中跳过。前提条件要在函数内部才知道时用。
+@pytest.mark.smoke
+def test_runtime_skip_demo(model: ApbSlaveModel):
+    if len(model.regs) != 32:                 # 本模型是 16 个寄存器，条件成立
+        pytest.skip("演示用：寄存器数不是 32，跳过该用例")
+    assert False        # 跳过后不会执行到这里
+
+
+# G-4：预期失败(xfail)。用例"会跑"，失败算符合预期 → 报告显示 x（不是 F）。
+#      适合标注"已知 bug、待修复"的用例：既保留用例、又不让 CI 变红。
+@pytest.mark.smoke
+@pytest.mark.xfail(reason="演示用：已知该断言会失败（模拟未修复的 bug）")
+def test_xfail_demo(model: ApbSlaveModel):
+    model.write(0x04, 0xDEAD_BEEF)
+    assert model.read(0x04) == 0xDEAD_BEED    # 故意写错，预期失败
+
+
+# G-5：xfail + strict。strict=True 时，万一"意外通过"会判 FAIL，
+#      提醒你"bug 可能已修复，该把 xfail 去掉了"。
+@pytest.mark.smoke
+@pytest.mark.xfail(reason="演示用：strict 模式", strict=True)
+def test_xfail_strict_demo(model: ApbSlaveModel):
+    model.write(0x08, 0x1234)
+    assert model.read(0x08) == 0xBAD          # 故意写错，确保确实失败
